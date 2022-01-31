@@ -34,11 +34,6 @@ except:
 		print("Failed to load spinapi library.")
 		pass
 
-
-
-def f(x):
-    return x*x
-
 def enum(**enums):
     return type('Enum', (), enums)
 
@@ -173,7 +168,7 @@ def pb_close():
 	return spinapi.pb_close()
 
 
-# Following codes are added by Qian on July 24, 2020, to program SpinCore PulseBlasterUSB
+# Following codes are added by Q. Wang on July 24, 2020, to program SpinCore PulseBlasterUSB
 def pb_inst_pbonly(*args):
     t = list(args)
     t[3] = ctypes.c_double(t[3])
