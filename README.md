@@ -1,4 +1,4 @@
-# PulseBlasterUSB-Python-Control
+# SpinCorePython-Control
 
 This GUI is designed to interface with [SpinCore PulseblasterUSB](https://www.spincore.com/products/PulseBlasterUSB/) for TTL pulse generation.
 
