@@ -109,6 +109,7 @@ class newComboBox(qt.QComboBox):
         else:
             event.ignore()
 
+# define the main table in GUI
 class instrTable(qt.QTableWidget):
     def __init__(self, num_boards, parent):
         super().__init__(parent)
@@ -122,7 +123,9 @@ class instrTable(qt.QTableWidget):
             for j in range(num_ch_per_board):
                 vertical_headers += [f"Bd {i} Ch {j}"]
 
+        # the number of table columns
         self.num_rows = len(vertical_headers)
+        # the number of table rows
         self.num_cols = 6
 
         self.horizontal_headers_init = ["Note"]
@@ -144,14 +147,23 @@ class instrTable(qt.QTableWidget):
         self.setColumnWidth(0, 150)
         # self.horizontalHeader().setSectionResizeMode(qt.QHeaderView.ResizeToContents)
 
+        # a list which will save widgets from the note column
         self.note_col_widget_list = []
+
+        # a list of dictionaries which will save widgets from each instruction column
         self.instr_col_widget_list = []
 
+        # add widgets (mostly qt.LineEdit()) to the note column, and save them to self.note_col_widget_list
         self.add_note_col_widgets()
+
         for i in range(self.num_cols-len(self.horizontal_headers_init)):
+            # add widgets to each instruction column, and save them in a dictionary and return it
             instr_col = self.add_instr_col_widgets(i+len(self.horizontal_headers_init))
+
+            # add the dictionary that saves all widgets in one instruction column to self.instr_col_widget_list
             self.instr_col_widget_list.append(instr_col)
 
+    # add widgets to the note column, and save them to self.note_col_widget_list
     def add_note_col_widgets(self):
         for i in range(len(self.vertical_headers_init)):
             la = qt.QLabel()
@@ -168,52 +180,64 @@ class instrTable(qt.QTableWidget):
             self.note_col_widget_list.append(le)
 
             if i%2 == 0:
+                # to set table cell background color, we need to setItem first
                 self.setItem(row_index, 0, qt.QTableWidgetItem())
                 self.item(row_index, 0).setBackground(bkg_color)
 
+    # add widgets to an instruction column, and save them in a dictionary and return it
     def add_instr_col_widgets(self, i):
-        instr_col_widgets = {}
+        instr_col_widgets = {} # a dictionary that will save widgets in this instruction column and be returned
 
-        du_dsb = newDoubleSpinBox(range=(0.00005, 1000000), decimal=3)
+        # duration DoubleSpinBox
+        du_dsb = newDoubleSpinBox(range=(0.00005, 1000000), decimal=5)
+        du_dsb.setValue(10)
         du_dsb.setStyleSheet("QDoubleSpinBox{font: 10pt; border: 0px; background:transparent}")
         self.setCellWidget(0, i, du_dsb)
         instr_col_widgets["du_dsb"] = du_dsb
 
+        # duration unit ComboBox, default is ms
         du_unit_cb = newComboBox()
         du_unit_cb.setStyleSheet("QComboBox{font: 10pt; border: 0px; background:transparent}")
         du_unit_cb.addItems(duration_units)
-        du_unit_cb.currentTextChanged[str].connect(lambda val, num=i-len(self.horizontal_headers_init): self.update_du_dsb(num, val))
+        du_unit_cb.currentTextChanged[str].connect(lambda val, num=i-len(self.horizontal_headers_init): self.update_du_dsb(num, val)) # if unit changes, change duration DoubleSpinBox properties accordingly
         self.setCellWidget(1, i, du_unit_cb)
         instr_col_widgets["du_unit_cb"] = du_unit_cb
         
+        # op code ComboBox
         op_code_cb = newComboBox()
         op_code_cb.setStyleSheet("QComboBox{font: 10pt; border: 0px; background:transparent}")
         op_code_cb.addItems(op_codes)
         self.setCellWidget(2, i, op_code_cb)
         instr_col_widgets["op_code_cb"] = op_code_cb
 
+        # op data SpinBox
         op_data_sb = newSpinBox(range=(0, 1000))
         op_data_sb.setStyleSheet("QSpinBox{font: 10pt; border: 0px; background:transparent}")
         self.setCellWidget(3, i, op_data_sb)
         instr_col_widgets["op_data_sb"] = op_data_sb
 
+        # note LineEdit
         note_le = qt.QLineEdit()
         note_le.setStyleSheet("QLineEdit{font: 10pt; border: 0px; background:transparent}")
         self.setCellWidget(4, i, note_le)
         instr_col_widgets["note_le"] = note_le
 
+        # a list which will save all radio buttons in one column
         rb_list = []
+
         for j in range(self.num_boards*num_ch_per_board):
             row_index = j + len(self.vertical_headers_init)
             
             rb = qt.QRadioButton()
             rb.setStyleSheet("QRadioButton{spacing:0 px}QRadioButton::indicator{width: 20px; height: 20px;}")
 
+            # use a GroupBox to center the radio button in table cell
             box = newBox("hbox")
             # box.setStyleSheet("QGroupBox {border: 0px;}")
             box.frame.addWidget(rb)
             box.frame.setAlignment(PyQt5.QtCore.Qt.AlignCenter)
             box.setStyleSheet("border:0px; background:transparent; margin-top:0%; margin-bottom:0%;")
+
             self.setCellWidget(row_index, i, box)
             rb_list.append(rb)
 
@@ -225,19 +249,22 @@ class instrTable(qt.QTableWidget):
 
         return instr_col_widgets
 
+    # add an instruction column to the end of the table
     def add_instr_col(self):
         self.num_cols += 1
         self.setColumnCount(self.num_cols)
         self.horizontal_headers += [f"Instr {len(self.horizontal_headers)-len(self.horizontal_headers_init)}"]
-        # print(self.horizontal_headers)
         self.setHorizontalHeaderLabels(self.horizontal_headers)
 
+        # add widgets to this column and save them into self.instr_col_widget_list
         instr_col = self.add_instr_col_widgets(self.num_cols - len(self.horizontal_headers_init))
         self.instr_col_widget_list.append(instr_col)
 
+        # enable del_instr_col function if there are more than one instruction column in the table
         if (self.num_cols - len(self.horizontal_headers_init) > 1) and (not self.parent.del_instr_pb.isEnabled()):
             self.parent.del_instr_pb.setEnabled(True)
 
+    # delete the last instruction column from the table
     def del_instr_col(self):
         self.num_cols -= 1
         self.setColumnCount(self.num_cols)
@@ -245,9 +272,11 @@ class instrTable(qt.QTableWidget):
         # print(self.horizontal_headers)
         self.instr_col_widget_list = self.instr_col_widget_list[0:-1]
 
+        # disable del_instr_col function if there's only one instruction column left in the table
         if self.num_cols - len(self.horizontal_headers_init) <= 1:
             self.parent.del_instr_pb.setEnabled(False)
 
+    # read from every note column qt.LineEdit and return them
     def compile_note_col(self):
         notes = []
         for widget in self.note_col_widget_list:
@@ -255,35 +284,55 @@ class instrTable(qt.QTableWidget):
 
         return notes
 
+    # read values from instruction column widgets and save them in a string
     def compile_instr(self):
-        # compile instructions
         num_instr = len(self.horizontal_headers) - len(self.horizontal_headers_init)
+
+        # saves instructions for all boards
         instr_list = []
         for j in range(self.num_boards):
             instr_list_single_board = []
             for i in range(num_instr):
+                # get the dictionary that saves all widgets in this instruction column
                 instr_widgets = self.instr_col_widget_list[i]
-                instr = [0, 0, 0, 0, 0, 0, 0] # instr note, channel TTL output, op code, op data and duration with unit
+
+                # in order of instr note, output TTL output, op code, op data, duration in unit of ns, duration in the unit specified in the table and duration unit
+                instr = [0, 0, 0, 0, 0, 0, 0]
                 
+                # note
                 instr[0] = instr_widgets["note_le"].text()
+                
+                # output TTL pattern
                 instr[1] = 0
                 for k in range(num_ch_per_board):
                     instr[1] += instr_widgets["rb_list"][k+j*num_ch_per_board].isChecked() * (2**k)
+
+                # op code
                 instr[2] = instr_widgets["op_code_cb"].currentIndex()
+
+                # op data
                 instr[3] = instr_widgets["op_data_sb"].value()
+
+                # duration in unit of ns
                 instr[4] = instr_widgets["du_dsb"].value() * (1000**(2-instr_widgets["du_unit_cb"].currentIndex()))
+
+                # duration from its DoubleSpinBox
                 instr[5] = instr_widgets["du_dsb"].value()
+
+                # duration unit
                 instr[6] = instr_widgets["du_unit_cb"].currentIndex()
+
                 instr_list_single_board.append(instr)
             
             instr_list.append(instr_list_single_board)
 
         return instr_list
 
+    # instruction column sanity check
     def instr_sanity_check(self, op_code_check, pulse_width_check):
-        # sanity check
-        # I haven't used all the functions of Spincore PulseblasterUSB. Sanity check here is limited to relevant ones.
+        # I haven't used all the functions of Spincore PulseblasterUSB. Sanity check here is limited to the ones I used.
 
+        # check op code
         if op_code_check:
             # the first instruction can't have op code WAIT
             instr_widgets = self.instr_col_widget_list[0]
@@ -301,22 +350,24 @@ class instrTable(qt.QTableWidget):
                                     qt.QMessageBox.Ok, qt.QMessageBox.Ok)
                 return False
 
+        # check pulse width
         if pulse_width_check:
             # the shortest pulse width is 50 ns, and time resolution is 10 ns
             num_instr = len(self.horizontal_headers) - len(self.horizontal_headers_init)
             for i in range(num_instr):
                 instr_widgets = self.instr_col_widget_list[i]
                 
-                # # time resolution is 10 ns
-                # if instr_widgets["du_unit_cb"].currentText() == "ns":
-                #     du = int(instr_widgets["du_dsb"].value())
-                #     if du%10 != 0:
-                #         qt.QMessageBox.warning(self, 'Setting Error',
-                #                     f"Error (Instr {i}): The Spincore PulseblasterUSB time resolution is 10 ns.",
-                #                     qt.QMessageBox.Ok, qt.QMessageBox.Ok)
-                #         return False
+                # time resolution is 10 ns
+                # also partially implemented in duration DoubleSpinBox settings for other units
+                if instr_widgets["du_unit_cb"].currentText() == "ns":
+                    du = int(instr_widgets["du_dsb"].value())
+                    if du%10 != 0:
+                        qt.QMessageBox.warning(self, 'Setting Error',
+                                    f"Error (Instr {i}): The Spincore PulseblasterUSB time resolution is 10 ns.",
+                                    qt.QMessageBox.Ok, qt.QMessageBox.Ok)
+                        return False
 
-                # the shortest acceptable pulse is 50 ns
+                # the shortest acceptable pulse width is 50 ns
                 duration = instr_widgets["du_dsb"].value() * (1000**(2-instr_widgets["du_unit_cb"].currentIndex()))
                 if duration < 50:
                     qt.QMessageBox.warning(self, 'Setting Error',
@@ -326,28 +377,30 @@ class instrTable(qt.QTableWidget):
 
         return True
 
+    # update duration DoubleSpinBox settings if duration unit changes
     def update_du_dsb(self, num, val):
         if val == "ms":
             instr_widgets = self.instr_col_widget_list[num]
-            instr_widgets["du_dsb"].setDecimals(3)
-            instr_widgets["du_dsb"].setMinimum(0.00005)
+            instr_widgets["du_dsb"].setDecimals(5) # time resolution is 10 ns
+            instr_widgets["du_dsb"].setMinimum(0.00005) # 50 ns
             instr_widgets["du_dsb"].setSingleStep(1)
 
         elif val == "us":
             instr_widgets = self.instr_col_widget_list[num]
-            instr_widgets["du_dsb"].setDecimals(2)
-            instr_widgets["du_dsb"].setMinimum(0.05)
+            instr_widgets["du_dsb"].setDecimals(2) # time resolution is 10 ns
+            instr_widgets["du_dsb"].setMinimum(0.05) # 50 ns
             instr_widgets["du_dsb"].setSingleStep(1)
         
         elif val == "ns":
             instr_widgets = self.instr_col_widget_list[num]
-            instr_widgets["du_dsb"].setDecimals(0)
-            instr_widgets["du_dsb"].setMinimum(50)
+            instr_widgets["du_dsb"].setDecimals(0) # time resolution is 10 ns
+            instr_widgets["du_dsb"].setMinimum(50) # 50 ns
             instr_widgets["du_dsb"].setSingleStep(10)
 
         else:
             print("Unsupported duration unit: {val}.")
 
+    # clear some widgets' values in the table 
     def clear_columns(self):
         # clear notes column
         for widget in self.note_col_widget_list:
@@ -359,22 +412,27 @@ class instrTable(qt.QTableWidget):
             for rb in rb_list:
                 rb.setChecked(False)
     
+    # load parameters from a local configuration file
+    # row numbers won't change, extra rows will be left empty or only first certain number of boards will be loaded
+    # restart the program to re-detect number of boards if it needed
     def load_config(self, config):
         new_num_boards = int(config["General settings"]["number of boards"])
         new_num_boards = min(new_num_boards, self.num_boards)
         num_instr = int(config["General settings"]["number of instructions"])
 
-        # usually widgets in the table will just be overwritten, 
+        # usually widgets values in the table will just be overwritten, 
         # but in the case of board number change, some widgets can be left unchanged.
-        # so I explicitly clear table widgets here
+        # Their values need to be explicitly cleared.
         self.clear_columns() 
 
+        # adjust row number
         while num_instr+len(self.horizontal_headers_init) < self.num_cols:
             self.del_instr_col()
 
         while num_instr+len(self.horizontal_headers_init) > self.num_cols:
             self.add_instr_col()
 
+        # update note column
         for i in range(new_num_boards):
             for j in range(num_ch_per_board):
                 widget = self.note_col_widget_list[i*num_ch_per_board+j]
@@ -382,6 +440,7 @@ class instrTable(qt.QTableWidget):
                 widget.setText(connections[j])
                 widget.setCursorPosition(0)
 
+        # update instruction columns
         for i in range(num_instr):
             instr_dict = self.instr_col_widget_list[i]
             instr_dict["note_le"].setText(config[f"Instr {i}"]["instr note"])
@@ -391,12 +450,14 @@ class instrTable(qt.QTableWidget):
             instr_dict["op_code_cb"].setCurrentText(config[f"Instr {i}"]["op code"])
             instr_dict["op_data_sb"].setValue(int(config[f"Instr {i}"]["op data"]))
 
+            # update radio buttons
             for j in range(new_num_boards):
                 ttl = config[f"Instr {i}"][f"board {j} ttl output pattern"][2:][::-1]
                 for k in range(num_ch_per_board):
                     rb = instr_dict["rb_list"][j*num_ch_per_board+k]
                     rb.setChecked(bool(int(ttl[k])))
 
+# define the table in scanner
 class scannerTable(qt.QTableWidget):
     def __init__(self, parent):
         super().__init__()
@@ -404,73 +465,99 @@ class scannerTable(qt.QTableWidget):
 
         vertical_headers_init = ["Instr #", "Start Duration", "Start Unit", "End Duration", "End Unit"]
 
+        # number of rows
         self.num_rows = len(vertical_headers_init)
+        # number of columns
         self.num_cols = 2
+
+        self.horizontal_headers = []
+        for i in range(self.num_cols):
+            self.horizontal_headers.append(f"Scan Instr {i}")
 
         self.setRowCount(self.num_rows)
         self.setColumnCount(self.num_cols)
 
         self.setVerticalHeaderLabels(vertical_headers_init)
         self.verticalHeader().setDefaultAlignment(PyQt5.QtCore.Qt.AlignCenter)
-        self.verticalHeader().setDefaultSectionSize(23)
+        self.verticalHeader().setDefaultSectionSize(25)
 
+        self.setHorizontalHeaderLabels(self.horizontal_headers)
         self.horizontalHeader().setDefaultSectionSize(95)
 
+        # a list of dictionaries which save widgets from each column 
         self.col_widget_list = []
         for i in range(self.num_cols):
             self.col_widget_list.append(self.add_col_widgets(i))
 
+    # add widgets to a column
     def add_col_widgets(self, i):
-        col_widgets = {}
+        col_widgets = {} # dictionary that will save all widgets in this column, and be returned
 
+        # instruction column number in the main table
         instr_num_sb = newSpinBox(range=(0, 100000))
         instr_num_sb.setStyleSheet("QSpinBox{font: 9pt; border: 0px; background:transparent}")
         self.setCellWidget(0, i, instr_num_sb)
         col_widgets["instr_num_sb"] = instr_num_sb
 
-        start_du_dsb = newDoubleSpinBox(range=(0.00005, 1000000), decimal=3)
+        # start duration DoubleSpinBox
+        start_du_dsb = newDoubleSpinBox(range=(0.00005, 1000000), decimal=5)
+        start_du_dsb.setValue(10)
         start_du_dsb.setStyleSheet("QDoubleSpinBox{font: 9pt; border: 0px; background:transparent}")
         self.setCellWidget(1, i, start_du_dsb)
         col_widgets["start_du_dsb"] = start_du_dsb
 
+        # start duration unit ComboBox
         start_du_unit_cb = newComboBox()
         start_du_unit_cb.setStyleSheet("QComboBox{font: 9pt; border: 0px; background:transparent}")
         start_du_unit_cb.addItems(duration_units)
-        start_du_unit_cb.currentTextChanged[str].connect(lambda val, num=i, type="start": self.update_du_dsb(num, val, type))
+        start_du_unit_cb.currentTextChanged[str].connect(lambda val, num=i, type="start": self.update_du_dsb(num, val, type)) # change the duration DoubleSpinBox properties when unit changes
         self.setCellWidget(2, i, start_du_unit_cb)
         col_widgets["start_du_unit_cb"] = start_du_unit_cb
 
-        end_du_dsb = newDoubleSpinBox(range=(0.00005, 1000000), decimal=3)
+        # end suration DoubleSpinBox
+        end_du_dsb = newDoubleSpinBox(range=(0.00005, 1000000), decimal=5)
+        end_du_dsb.setValue(10)
         end_du_dsb.setStyleSheet("QDoubleSpinBox{font: 9pt; border: 0px; background:transparent}")
         self.setCellWidget(3, i, end_du_dsb)
         col_widgets["end_du_dsb"] = end_du_dsb
 
+        # end duration unit ComboBox
         end_du_unit_cb = newComboBox()
         end_du_unit_cb.setStyleSheet("QComboBox{font: 9pt; border: 0px; background:transparent}")
         end_du_unit_cb.addItems(duration_units)
-        end_du_unit_cb.currentTextChanged[str].connect(lambda val, num=i, type="end": self.update_du_dsb(num, val, type))
+        end_du_unit_cb.currentTextChanged[str].connect(lambda val, num=i, type="end": self.update_du_dsb(num, val, type)) # change the duration DoubleSpinBox properties when unit changes
         self.setCellWidget(4, i, end_du_unit_cb)
         col_widgets["end_du_unit_cb"] = end_du_unit_cb
 
         return col_widgets
 
+    # add a column to the end of the table
     def add_col(self):
         self.num_cols += 1
         self.setColumnCount(self.num_cols)
 
+        self.horizontal_headers.append(f"Scan Instr {self.num_cols-1}")
+        self.setHorizontalHeaderLabels(self.horizontal_headers)
+
+        # add widgets to this column
         self.col_widget_list.append(self.add_col_widgets(self.num_cols-1))
 
+        # enable del_scan_instr function when there are more than one column in the table
         if (self.num_cols > 1) and (not self.parent.del_scan_instr_pb.isEnabled()):
             self.parent.del_scan_instr_pb.setEnabled(True)
 
+    # delete the last column from the table
     def del_col(self):
         self.num_cols -= 1
         self.setColumnCount(self.num_cols)
+        self.horizontal_headers = self.horizontal_headers[0:-1]
         self.col_widget_list = self.col_widget_list[0:-1]
 
+        # disable del_scan_instr funtion if there's only one column left
         if self.num_cols <= 1:
             self.parent.del_scan_instr_pb.setEnabled(False)
 
+    # update duration DoubleSpinBox properties when duration unit changes 
     def update_du_dsb(self, num, val, type):
         if type == "start":
             widget = self.col_widget_list[num]["start_du_dsb"]
@@ -481,20 +568,21 @@ class scannerTable(qt.QTableWidget):
             return
 
         if val == "ms":
-            widget.setDecimals(3)
-            widget.setMinimum(0.00005)
+            widget.setDecimals(5) # time resolution is 10 ns
+            widget.setMinimum(0.00005) # 50 ns
             widget.setSingleStep(1)
         elif val == "us":
-            widget.setDecimals(2)
-            widget.setMinimum(0.05)
+            widget.setDecimals(2) # time resolution is 10 ns
+            widget.setMinimum(0.05) # 50 ns
             widget.setSingleStep(1)
         elif val == "ns":
-            widget.setDecimals(0)
-            widget.setMinimum(50)
+            widget.setDecimals(0) # time resolution is 10 ns
+            widget.setMinimum(50) # 50 ns
             widget.setSingleStep(10)
         else:
             print("Unsupported duration unit: {val}.")
 
+    # read values from each widgets and save them in a list, and return it
     def compile_scan_instr(self):
         scan_instr_list = []
         for i in range(self.num_cols):
@@ -510,15 +598,18 @@ class scannerTable(qt.QTableWidget):
 
         return scan_instr_list
 
+    # load parameters from local configuration file
     def load_config(self, config):
         new_num_cols = config.getint("Scanner settings", "number of scan instr")
 
+        # adjust column number the one specified in the configuration file
         while new_num_cols > self.num_cols:
             self.add_col()
 
         while new_num_cols < self.num_cols:
             self.del_col()
 
+        # update values of widgets 
         for i in range(new_num_cols):
             col_widgets = self.col_widget_list[i]
             col_widgets["instr_num_sb"].setValue(config.getint(f"Scan Instr {i}", "instr no."))
@@ -527,8 +618,8 @@ class scannerTable(qt.QTableWidget):
             col_widgets["end_du_dsb"].setValue(config.getfloat(f"Scan Instr {i}", "end duration time"))
             col_widgets["end_du_unit_cb"].setCurrentText(config[f"Scan Instr {i}"]["end duration unit"])
 
+    # scanner table sanity check
     def scan_instr_sanity_check(self):
-        # the shortest pulse width is 50 ns
         for i in range(self.num_cols):
             col_widgets = self.col_widget_list[i]
             instr_num = col_widgets["instr_num_sb"].value()
@@ -538,6 +629,7 @@ class scannerTable(qt.QTableWidget):
                                 qt.QMessageBox.Ok, qt.QMessageBox.Ok)
                 return False
 
+            # the shortest pulse width is 50 ns
             start_duration = col_widgets["start_du_dsb"].value() * (1000**(2-col_widgets["start_du_unit_cb"].currentIndex()))
             if start_duration < 50:
                 qt.QMessageBox.warning(self, 'Scanner Setting Error',
@@ -545,6 +637,17 @@ class scannerTable(qt.QTableWidget):
                                 qt.QMessageBox.Ok, qt.QMessageBox.Ok)
                 return False
 
+            # time resolution is 10 ns
+            # also partially implemented in duration DoubleSpinBox settings for other units
+            if col_widgets["start_du_unit_cb"].currentText() == "ns":
+                du = int(col_widgets["start_du_dsb"].value())
+                if du%10 != 0:
+                    qt.QMessageBox.warning(self, 'Scanner Setting Error',
+                                f"Error (Scan Instr {i}): The Spincore PulseblasterUSB time resolution is 10 ns.",
+                                qt.QMessageBox.Ok, qt.QMessageBox.Ok)
+                    return False
+
+            # the shortest pulse width is 50 ns
             end_duration = col_widgets["end_du_dsb"].value() * (1000**(2-col_widgets["end_du_unit_cb"].currentIndex()))
             if end_duration < 50:
                 qt.QMessageBox.warning(self, 'Scanner Setting Error',
@@ -552,8 +655,19 @@ class scannerTable(qt.QTableWidget):
                                 qt.QMessageBox.Ok, qt.QMessageBox.Ok)
                 return False
 
+            # time resolution is 10 ns
+            # also partially implemented in duration DoubleSpinBox settings for other units
+            if col_widgets["end_du_unit_cb"].currentText() == "ns":
+                du = int(col_widgets["end_du_dsb"].value())
+                if du%10 != 0:
+                    qt.QMessageBox.warning(self, 'Scanner Setting Error',
+                                f"Error (Scan Instr {i}): The Spincore PulseblasterUSB time resolution is 10 ns.",
+                                qt.QMessageBox.Ok, qt.QMessageBox.Ok)
+                    return False
+
         return True
 
+    # generate scan sequence
     def generate_sequence(self, randomize):
         scan_sequence_list = []
         samp_num = self.parent.samp_num_sb.value()
@@ -562,14 +676,15 @@ class scannerTable(qt.QTableWidget):
             col_widgets = self.col_widget_list[i]
             scan_sequence = {}
             scan_sequence["instr no."] = col_widgets["instr_num_sb"].value()
-            scan_start = col_widgets["start_du_dsb"].value() * (1000**(2-col_widgets["start_du_unit_cb"].currentIndex()))
-            scan_end = col_widgets["end_du_dsb"].value() * (1000**(2-col_widgets["end_du_unit_cb"].currentIndex()))
-            seq = np.linspace(scan_start, scan_end, samp_num)
+            scan_start = col_widgets["start_du_dsb"].value() * (1000**(2-col_widgets["start_du_unit_cb"].currentIndex())) # start duration time to scan 
+            scan_end = col_widgets["end_du_dsb"].value() * (1000**(2-col_widgets["end_du_unit_cb"].currentIndex())) # end suration time to scan
+            seq = np.linspace(scan_start, scan_end, samp_num) # linearly sample from start to end 
             seq = np.tile(seq, rep_num) # use np.tile to get [1, 2, 3, 1, 2, 3], use np.repeat to get [1, 1, 2, 2, 3, 3]
             scan_sequence["sequence"] = seq
 
             scan_sequence_list.append(scan_sequence)
 
+        # if the sequence needs to be randomized
         if randomize:
             total_num = samp_num*rep_num
             random_index = np.arange(total_num)
@@ -581,6 +696,7 @@ class scannerTable(qt.QTableWidget):
 
         return scan_sequence_list        
 
+# a GroupBox to place scanner widgets
 class scannerBox(newBox):
     def __init__(self, parent):
         super().__init__(layout_type="grid")
@@ -594,41 +710,48 @@ class scannerBox(newBox):
         self.frame.setColumnStretch(4, 5)
         self.setMaximumHeight(290)
 
-        self.random_seq = True
-        self.scanning = False
+        self.random_seq = True # to randomize scan sequence or not
+        self.scanning = False # is the program currently scanning
 
+        # place all widgets except the table
         self.place_controls()
+
+        # place the table
         self.table = scannerTable(self)
         self.frame.addWidget(self.table, 4, 1, 1, 4)
 
-
+    # place widgets in the scanner GroupBox
     def place_controls(self):
         self.progress_bar = qt.QProgressBar()
         self.frame.addWidget(self.progress_bar, 0, 0)
         self.progress_bar.setValue(0)
 
-        operating_protocol = "Operating Protocol:\n\n\n"
-        operating_protocol += "0. A WAIT...BRANCH structure is needed.\n\n"
-        operating_protocol += "1. Turn off PulseBlaster external trigger.\n\n"
-        operating_protocol += "2. Click the \"Scan\" button.\n\n"
-        operating_protocol += f"3. Turn on PulseBlaster external trigger."
+        operating_procedure = "Operating procedure:\n\n\n"
+        operating_procedure += "0. A WAIT...BRANCH structure is needed.\n\n"
+        operating_procedure += "1. Turn off PulseBlaster external trigger.\n\n"
+        operating_procedure += "2. Click the \"Scan\" button.\n\n"
+        operating_procedure += f"3. Turn on PulseBlaster external trigger."
 
-        la = qt.QLabel(operating_protocol)
+        la = qt.QLabel(operating_procedure)
         la.setStyleSheet("QLabel{background: rgba(67, 76, 86, 127); font:9 pt}")
         self.frame.addWidget(la, 1, 0, 4, 1)
 
+        # a pushbutton to add scan instruction
         self.add_scan_instr_pb = qt.QPushButton("Add Scan Instr")
         self.add_scan_instr_pb.clicked[bool].connect(lambda val:self.table.add_col())
         self.frame.addWidget(self.add_scan_instr_pb, 0, 1)
 
+        # a pushbutton to delete scan instruction
         self.del_scan_instr_pb = qt.QPushButton("Del Scan Instr")
         self.del_scan_instr_pb.clicked[bool].connect(lambda val:self.table.del_col())
         self.frame.addWidget(self.del_scan_instr_pb, 0, 2)
 
+        # a pushbutton to start scanning
         self.scan_pb = qt.QPushButton("Scan")
         self.scan_pb.clicked[bool].connect(lambda val:self.scan())
         self.frame.addWidget(self.scan_pb, 0, 3)
 
+        # a pushbutton to stop scanning
         self.stop_scan_pb = qt.QPushButton("Stop Scan")
         self.stop_scan_pb.clicked[bool].connect(lambda val:self.stop_scan())
         self.stop_scan_pb.setEnabled(False)
@@ -636,38 +759,46 @@ class scannerBox(newBox):
 
         self.frame.addWidget(qt.QLabel("Sample Number:"), 1, 1, alignment=PyQt5.QtCore.Qt.AlignRight)
 
+        # sample number SpinBox
         self.samp_num_sb = newSpinBox(range=(2, 100000))
         self.samp_num_sb.setValue(10)
         self.frame.addWidget(self.samp_num_sb, 1, 2)
 
         self.frame.addWidget(qt.QLabel("Repetition Number:"), 1, 3, alignment=PyQt5.QtCore.Qt.AlignRight)
 
+        # repetition number SpinBox
         self.rep_num_sb = newSpinBox(range=(1, 100000))
         self.rep_num_sb.setValue(10)
         self.frame.addWidget(self.rep_num_sb, 1, 4)
 
         self.frame.addWidget(qt.QLabel("Sequence Name to Save:"), 2, 1, alignment=PyQt5.QtCore.Qt.AlignRight)
 
+        # a LineEdit to indicate the file name to save sequence
         self.seq_name_le = qt.QLineEdit("Scan_sequence")
         self.frame.addWidget(self.seq_name_le, 2, 2)
 
         self.frame.addWidget(qt.QLabel("DAQ DI Channel:"), 2, 3, alignment=PyQt5.QtCore.Qt.AlignRight)
 
+        # a LineEdit to indicate DAQ DI cahnnel
         self.daq_ch_le = qt.QLineEdit("Dev_/port_/line_")
         self.frame.addWidget(self.daq_ch_le, 2, 4)
 
+        # a checkbox to indicate whether to append date/time to the filename when a sequence is saved
         self.auto_append_chb = qt.QCheckBox("Auto Append Date/Time")
         self.auto_append_chb.setChecked(True)
         self.frame.addWidget(self.auto_append_chb, 3, 2)
 
+        # a checkbox to indicate whether to randomize scan sequence
         self.random_chb = qt.QCheckBox("Randomize Sequence")
         self.random_chb.setChecked(self.random_seq)
         self.random_chb.toggled[bool].connect(lambda val: self.update_random_chb(val))
         self.frame.addWidget(self.random_chb, 3, 4)
 
+    # change the value of variable "self.random_seq"
     def update_random_chb(self, val):
         self.random_seq = val
 
+    # laod parameters from a local configuration file
     def load_config(self, config):
         self.samp_num_sb.setValue(config.getint("Scanner settings", "sample number"))
         self.rep_num_sb.setValue(config.getint("Scanner settings", "repetition number"))
@@ -676,7 +807,9 @@ class scannerBox(newBox):
 
         self.table.load_config(config)
 
+    # start to scan parameters
     def scan(self):
+        # perform sanity checks
         if not self.table.scan_instr_sanity_check():
             return
 
@@ -686,10 +819,12 @@ class scannerBox(newBox):
         if not self.daq_sanity_check():
             return
 
+        # disable or enable some widgets
         self.enable_widgets(False)
         self.stop_scan_pb.setEnabled(True)
         self.scanning = True
 
+        # generate scan sequence
         self.scan_sequence_list = self.table.generate_sequence(self.random_seq)
         # print(self.scan_sequence_list)
         self.counter = 0
@@ -704,15 +839,17 @@ class scannerBox(newBox):
             self.scanning = False
             return
 
-        # stop and reset spincore
-        pb_stop()
-        pb_reset()
+        # stop, reset and restart PulseBlaster
+        for i in range(self.parent.num_boards):
+            pb_select_board(i)
+            pb_stop()
+            pb_reset()
 
-        # load spincore the first scan parameters
+            # start spincore and make it ready to be triggered
+            pb_start()
+
+        # load the first scan parameter to PulseBlaster
         self.load_param()
-
-		# start spincore and make it ready to be triggered
-        pb_start()
 
         # a DAQ is used to read Spincore "WAITING" signal, a rising edge will be used to trigger loading
         self.task = nidaqmx.Task("DI task")
@@ -726,7 +863,9 @@ class scannerBox(newBox):
 
         self.task.start()
 
+    # stop scanning
     def stop_scan(self):
+        # stop and close DAQ task
         try:
             self.task.stop()
             self.task.close()
@@ -738,9 +877,10 @@ class scannerBox(newBox):
         self.stop_scan_pb.setEnabled(False)
         self.scanning = False
 
-        time.sleep(0.02) # for some reason we need this step here otherwise the next line will crash the program
+        time.sleep(0.1) # for some reason we need this step here otherwise the next line will crash the program
         self.progress_bar.setValue(0)
 
+    # enable or disable widgets
     def enable_widgets(self, en):
         self.parent.add_instr_pb.setEnabled(en)
         self.parent.del_instr_pb.setEnabled(en)
@@ -763,7 +903,9 @@ class scannerBox(newBox):
         self.random_chb.setEnabled(en)
         self.table.setEnabled(en)
 
+    # save sequence locally, it's necessary when the sequence is randomized
     def save_sequence(self):
+        # compile a file name to save
         filename = self.seq_name_le.text()
         if self.auto_append_chb.isChecked():
             filename += "_"
@@ -771,6 +913,7 @@ class scannerBox(newBox):
         filename += ".ini"
         filename = r"saved_sequences/" + filename
 
+        # check if the file name exists and whether to overwrite
         if os.path.exists(filename):
             overwrite = qt.QMessageBox.warning(self, 'Sequence file name exists',
                                             'Sequence file name already exists. Continue to overwrite it?',
@@ -779,10 +922,12 @@ class scannerBox(newBox):
             if overwrite == qt.QMessageBox.No:
                 return False
 
+        # check if the directory exists, create it if not
         dir_name = os.path.dirname(filename)
         if not os.path.exists(dir_name):
             os.mkdir(dir_name)
 
+        # create the config, its format should be readable by the camera program 
         config = configparser.ConfigParser()
         config.optionxform = str
 
@@ -805,12 +950,19 @@ class scannerBox(newBox):
         config.write(configfile)
         configfile.close()
 
+        # save scan sequence to camera folder, so the camera program can read it
+		# configfile = open(r"C:\Users\BufferLab\Desktop\Python-Lab-Control\pixelfly-python-control\scan_sequence\latest_sequence.ini", "w")
+		# config.write(configfile)
+		# configfile.close()
+
         return True
 
+    # DAQ channel sanity check
     def daq_sanity_check(self):
         daq_ch = self.daq_ch_le.text()
         daq_ch = daq_ch.strip()
 
+        # check whether the channel name is legitimate
         matched = re.match("Dev[0-9]{1,}/port[0-9]{1,}/line[0-9]{1,}", daq_ch)
         is_matched = bool(matched)
         if not is_matched:
@@ -819,6 +971,7 @@ class scannerBox(newBox):
                                 qt.QMessageBox.Ok, qt.QMessageBox.Ok)
             return False
 
+        # check whether the channel exists in this computer
         di_channels = []
         dev_collect = nidaqmx.system._collections.device_collection.DeviceCollection()
         for i in dev_collect.device_names:
@@ -833,31 +986,34 @@ class scannerBox(newBox):
 
         return True
 
+    # load parameters into PulseBlaster. Will be called in every cycle
     def load_param(self, task_handle=None, signal_type=None, callback_date=None):
-        time.sleep(0.02) # seconds, important to keep load_board() work as expected
+        time.sleep(0.02) # seconds, important in the case of trigger signal has oscillations at rising/falling edge
 
         if self.counter < self.scan_sequence_len:
             for i in range(self.scan_instr_num):
                 j = self.scan_sequence_list[i]["instr no."]
-                instr_col_widgets = self.parent.table.instr_col_widget_list[j]
+                instr_col_widgets = self.parent.table.instr_col_widget_list[j] # find the instruction column desired to scan
                 unit = instr_col_widgets["du_unit_cb"].currentIndex()
                 du = self.scan_sequence_list[i]["sequence"][self.counter]
                 du = du/(1000**(2-unit))
                 # print(du)
-                instr_col_widgets["du_dsb"].setValue(du)
+                instr_col_widgets["du_dsb"].setValue(du) # update duration DoubleSpinBox value
 
+            # copmile instructions and load to boards
             self.parent.load_board(perform_sanity_check=False)
+
             self.progress_bar.setValue(int(self.counter/self.scan_sequence_len*100.0))
-            
             self.counter += 1
 
+        # scanning finishes
         elif self.counter == self.scan_sequence_len:
             self.stop_scan()            
         
         # return an int is necessary for DAQ callback function
         return 0
         
-
+# main window
 class mainWindow(qt.QMainWindow):
     def __init__(self, app):
         super().__init__()
@@ -868,13 +1024,16 @@ class mainWindow(qt.QMainWindow):
         self.box = newBox(layout_type="grid")
         self.box.setStyleSheet("QGroupBox{border-width: 0 px;}")
         
+        # the top GroupBox in the main window, which contains multiple control widgets
         ctrl_box = self.place_controls()
         self.box.frame.addWidget(ctrl_box, 0, 0)
 
+        # scanner box
         self.scan_box = scannerBox(self)
         self.box.frame.addWidget(self.scan_box, 1, 0)
         # self.scan_box.hide()
 
+        # main table
         self.table = instrTable(self.num_boards, self)
         self.box.frame.addWidget(self.table, 2, 0)
 
@@ -883,7 +1042,7 @@ class mainWindow(qt.QMainWindow):
         self.setWindowTitle("PulseBlasterUSB Timing Control")
         self.show()
 
-    # initiate Spincore PulseBlaster USB
+    # initialize Spincore PulseBlaster boards
     def init_spincore(self):
 		# Downloaded form http://www.spincore.com/support/SpinAPI_Python_Wrapper/Python_Wrapper_Main.shtml and modified
 		# Enable the SpinCore log file
@@ -896,8 +1055,9 @@ class mainWindow(qt.QMainWindow):
         print("This program controls the TTL outputs of the PulseBlasterUSB.\n")
 
         if num_board == 0:
-            return
+            return num_board
 
+        # initialize every board
         for i in range(num_board):
             pb_select_board(i)
 
@@ -912,6 +1072,7 @@ class mainWindow(qt.QMainWindow):
 
         return num_board
 
+    # place control widgets in the ctrl_box
     def place_controls(self):
         ctrl_box = newBox("grid")
         ctrl_box.setTitle("General Control")
@@ -922,53 +1083,66 @@ class mainWindow(qt.QMainWindow):
         ctrl_box.frame.setColumnStretch(3, 1)
         ctrl_box.frame.setColumnStretch(4, 1)
 
+        # a pushbutton to add an instruction column
         self.add_instr_pb = qt.QPushButton("Add Instr")
         self.add_instr_pb.clicked[bool].connect(lambda val:self.table.add_instr_col())
         ctrl_box.frame.addWidget(self.add_instr_pb, 0, 0)
 
+        # a pushbutton to delete an instruction column
         self.del_instr_pb = qt.QPushButton("Del Instr")
         self.del_instr_pb.clicked[bool].connect(lambda val:self.table.del_instr_col())
         ctrl_box.frame.addWidget(self.del_instr_pb, 0, 1)
 
+        # a pushbutton to show or hide scanner widgets
         self.toggle_scanner_pb = qt.QPushButton("Toggle Scanner")
         self.toggle_scanner_pb.clicked[bool].connect(lambda val:self.toggle_scanner())
         ctrl_box.frame.addWidget(self.toggle_scanner_pb, 0, 2)
 
+        # a pushbutton to trigger boards once
         self.soft_trig_pb = qt.QPushButton("Software Trig")
         self.soft_trig_pb.clicked[bool].connect(lambda val:self.software_trigger())
         self.soft_trig_pb.setToolTip("Caveat: this doesn't sync multiple boards.")
         ctrl_box.frame.addWidget(self.soft_trig_pb, 0, 3)
 
+        # a pushbutton to load parameters into boards
         self.load_board_pb = qt.QPushButton("Load Boards")
         self.load_board_pb.clicked[bool].connect(lambda val, perform_sanity_check=True:self.load_board(perform_sanity_check))
         ctrl_box.frame.addWidget(self.load_board_pb, 0, 4)
 
         ctrl_box.frame.addWidget(qt.QLabel("File Name to Save:"), 1, 0, alignment=PyQt5.QtCore.Qt.AlignRight)
 
+        # a LineEdit to indicate file name to save configurations
         self.filename_le = qt.QLineEdit("PulseBlasterUSB_configs")
         ctrl_box.frame.addWidget(self.filename_le, 1, 1)
 
+        # a checkbox to indicate whether to append date/time to the configuration file name
         self.auto_append_chb = qt.QCheckBox("Auto Append Date/Time")
         self.auto_append_chb.setChecked(True)
         ctrl_box.frame.addWidget(self.auto_append_chb, 1, 2)
 
+        # a pushbutton to compile and save configuration locally
         self.save_config_pb = qt.QPushButton("Save Config")
         self.save_config_pb.clicked[bool].connect(lambda val:self.save_config())
         ctrl_box.frame.addWidget(self.save_config_pb, 1, 3)
 
+        # a pushbutton to load parameters from a local configuration file
         self.load_config_pb = qt.QPushButton("Load Config")
         self.load_config_pb.clicked[bool].connect(lambda val:self.load_config())
         ctrl_box.frame.addWidget(self.load_config_pb, 1, 4)
 
         return ctrl_box
 
+    # load parameters to PulseBlaster boards
     def load_board(self, perform_sanity_check):
+        # perform sanity check
         if perform_sanity_check:
             if not self.table.instr_sanity_check(op_code_check=True, pulse_width_check=True):
                 return
 
+        # compie instructions from the main table
         instr_list = self.table.compile_instr()
 
+        # write instructions to boards
         for j, instr_single_board in enumerate(instr_list):
             pb_select_board(j)
             pb_start_programming(PULSE_PROGRAM)
@@ -980,19 +1154,24 @@ class mainWindow(qt.QMainWindow):
         # for j, instr_single_board in enumerate(instr_list):
         #     for i in range(len(instr_single_board)):
         #         print(instr_single_board[i])
-        
+
+    # hide or show scanner widgets  
     def toggle_scanner(self):
         if self.scan_box.isVisible():
             self.scan_box.hide()
         else:
             self.scan_box.show()
 
+    # trigger PulseBlaster boards
     def software_trigger(self):
+        # multiple boards won't be trigger at the same time
         for i in range(self.num_boards):
             pb_select_board(i)
             pb_start()
 
+    # save configurations to a local file
     def save_config(self):
+        # compile file name to save
         filename = self.filename_le.text()
         if self.auto_append_chb.isChecked():
             filename += "_"
@@ -1000,6 +1179,7 @@ class mainWindow(qt.QMainWindow):
         filename += ".ini"
         filename = r"saved_configs/" + filename
 
+        # check if the file name exists and whether to overwrite
         if os.path.exists(filename):
             overwrite = qt.QMessageBox.warning(self, 'File name exists',
                                             'File name already exists. Continue to overwrite it?',
@@ -1008,10 +1188,12 @@ class mainWindow(qt.QMainWindow):
             if overwrite == qt.QMessageBox.No:
                 return
 
+        # check whether the directory exists, create it if not
         dir_name = os.path.dirname(filename)
         if not os.path.exists(dir_name):
             os.mkdir(dir_name)
 
+        # create config
         config = configparser.ConfigParser(allow_no_value=True)
         config.optionxform = str
 
@@ -1049,6 +1231,7 @@ class mainWindow(qt.QMainWindow):
         config.write(configfile)
         configfile.close()
 
+    # load parameters from a local configuration file
     def load_config(self):
         filename, _ = qt.QFileDialog.getOpenFileName(self, "Load configs", "saved_configs/", "All Files (*);;INI File (*.ini)")
         if not filename:
@@ -1061,6 +1244,7 @@ class mainWindow(qt.QMainWindow):
         self.table.load_config(config)
         self.scan_box.load_config(config)
 
+    # Re-difine closeEvent. Ask before closing if the program is scanning
     def closeEvent(self, event):
         if not self.scan_box.scanning:
             super().closeEvent(event)
