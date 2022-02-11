@@ -1272,6 +1272,6 @@ if __name__ == '__main__':
     app.exec_()
 
     # pb_close function has to be called at the end of any programming/start/stop instructions
-    # pb_close()
+    pb_close()
 
     sys.exit()
