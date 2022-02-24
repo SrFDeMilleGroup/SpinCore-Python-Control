@@ -81,6 +81,8 @@ class newSpinBox(qt.QSpinBox):
         super().__init__()
         self.setFocusPolicy(PyQt5.QtCore.Qt.StrongFocus)
 
+        self.setKeyboardTracking(False)
+
         if range != None:
             self.setRange(range[0], range[1])
         if stepsize != None:
