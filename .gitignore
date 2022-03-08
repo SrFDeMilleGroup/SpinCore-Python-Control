@@ -1,5 +1,5 @@
 test
 __pycache__
 log.txt
-# saved_configs/
-# saved_sequences/
+saved_configs/
+saved_sequences/
